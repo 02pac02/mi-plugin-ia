@@ -1,0 +1,163 @@
+(function($){
+  const el = (id) => document.getElementById(id);
+  const toggle  = el('mpia-toggle');
+  const badge   = el('mpia-badge');
+  const chatbox = el('mpia-chatbox');
+  const form    = el('mpia-form');
+  const input   = el('mpia-input');
+  const sendBtn = el('mpia-send');
+  const log     = el('mpia-messages');
+  const chips   = el('mpia-chips');
+  const closeBtn= el('mpia-close');
+
+  let openedOnce = false;
+  let unread = 0;
+
+  const fmtTime = () => {
+    const d = new Date();
+    return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  };
+
+  const bubble = (text, cls, withMeta = true) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'mpia-bubble ' + cls;
+
+    const p = document.createElement('div');
+    p.textContent = text;
+    wrap.appendChild(p);
+
+    if (withMeta){
+      const meta = document.createElement('span');
+      meta.className = 'mpia-meta';
+      meta.textContent = fmtTime();
+      wrap.appendChild(meta);
+    }
+
+    log.appendChild(wrap);
+    log.scrollTop = log.scrollHeight;
+    return wrap;
+  };
+
+  const typingBubble = () => {
+    const wrap = document.createElement('div');
+    wrap.className = 'mpia-bubble mpia-bot mpia-typing';
+    const dots = document.createElement('div');
+    dots.className = 'mpia-dots';
+    dots.innerHTML = '<span></span><span></span><span></span>';
+    wrap.appendChild(dots);
+    log.appendChild(wrap);
+    log.scrollTop = log.scrollHeight;
+    return wrap;
+  };
+
+  const showGreetingOnce = () => {
+    try {
+      const key = MPIA.firstOpenKey || 'mpia_first_open';
+      if (!sessionStorage.getItem(key)) {
+        bubble(MPIA.greeting || 'Hola, ¿cómo puedo ayudarte?', 'mpia-bot');
+        sessionStorage.setItem(key, '1');
+      }
+    } catch(e){}
+  };
+
+  const updateBadge = () => {
+    if (!badge) return;
+    if (unread > 0 && chatbox.style.display === 'none') {
+      badge.style.display = 'block';
+    } else {
+      badge.style.display = 'none';
+    }
+  };
+
+  const openChat = () => {
+    chatbox.style.display = 'flex';
+    toggle.style.display  = 'none';
+    if (!openedOnce){ showGreetingOnce(); openedOnce = true; }
+    unread = 0; updateBadge();
+    input.focus();
+  };
+
+  const closeChat = () => {
+    chatbox.style.display = 'none';
+    toggle.style.display  = 'inline-block';
+  };
+
+  if (toggle) toggle.addEventListener('click', openChat);
+  if (closeBtn) closeBtn.addEventListener('click', closeChat);
+
+  const updateSendState = () => { sendBtn.disabled = !input.value.trim(); };
+  input.addEventListener('input', updateSendState);
+  updateSendState();
+
+  // Chips: insertar texto en el input
+  if (chips){
+    chips.addEventListener('click', (e)=>{
+      if (e.target.classList.contains('mpia-chip')){
+        input.value = e.target.textContent;
+        updateSendState();
+        input.focus();
+      }
+    });
+  }
+
+  input.addEventListener('keydown', (e)=>{
+    if (e.key === 'Enter' && !e.shiftKey){
+      e.preventDefault();
+      if (!sendBtn.disabled) form.dispatchEvent(new Event('submit'));
+    }
+  });
+
+if (form) form.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if (sendBtn.classList.contains('is-loading')) return; // evita doble click
+
+  const text = input.value.trim();
+  if (!text) return;
+
+  // UI: bloqueo mientras enviamos
+  sendBtn.classList.add('is-loading');
+  sendBtn.disabled = true;
+  input.disabled = true;
+
+  bubble(text, 'mpia-user');
+  input.value = '';
+  // mantén deshabilitado hasta recibir respuesta
+
+  const typing = typingBubble();
+
+  try {
+    const res = await fetch(MPIA.restUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-WP-Nonce': MPIA.nonce
+      },
+      body: JSON.stringify({ message: text })
+    });
+
+    const data = await res.json();
+    typing.remove();
+
+    if (!res.ok || data.error){
+      bubble('Error: ' + (data.error || res.statusText), 'mpia-bot');
+      if (chatbox.style.display === 'none'){ unread++; updateBadge(); }
+      return;
+    }
+    bubble(data.reply || 'Sin respuesta', 'mpia-bot');
+    if (chatbox.style.display === 'none'){ unread++; updateBadge(); }
+  } catch(err){
+    typing.remove();
+    bubble('Error de red. Inténtalo de nuevo.', 'mpia-bot');
+    if (chatbox.style.display === 'none'){ unread++; updateBadge(); }
+  } finally {
+    // Restaurar UI
+    sendBtn.classList.remove('is-loading');
+    sendBtn.disabled = false;
+    input.disabled = false;
+    updateSendState();
+    input.focus();
+  }
+});
+
+
+})(jQuery);

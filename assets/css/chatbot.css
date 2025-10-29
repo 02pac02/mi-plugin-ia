@@ -1,0 +1,161 @@
+:root{
+  --mpia-bg: #ffffff;
+  --mpia-fg: #111827;
+  --mpia-muted:#6b7280;
+  --mpia-primary:#0b57d0;
+  --mpia-bot:#f3f4f6;
+  --mpia-user:#e8f0fe;
+  --mpia-border:#e5e7eb;
+  --mpia-shadow: 0 18px 40px rgba(0,0,0,.18);
+}
+
+@media (prefers-color-scheme: dark){
+  :root{
+    --mpia-bg:#0b1220;
+    --mpia-fg:#e5e7eb;
+    --mpia-muted:#9ca3af;
+    --mpia-primary:#8ab4ff;
+    --mpia-bot:#162036;
+    --mpia-user:#122548;
+    --mpia-border:#1f2a44;
+    --mpia-shadow: 0 18px 40px rgba(0,0,0,.45);
+  }
+}
+
+#mpia-chat-root { position: fixed; bottom: 18px; right: 18px; z-index: 9999; }
+
+/* Botón flotante con badge */
+#mpia-toggle{
+  position: relative;
+  border: none; border-radius: 999px; padding: 12px 14px; cursor: pointer;
+  font-size: 20px; background: var(--mpia-bg); color: var(--mpia-fg);
+  box-shadow: 0 8px 24px rgba(0,0,0,.18); transition: transform .15s ease;
+}
+#mpia-toggle:hover{ transform: translateY(-2px); }
+#mpia-badge{
+  display:none;
+  position:absolute; top:-4px; right:-4px; width:10px; height:10px; border-radius:999px;
+  background: #ef4444; box-shadow: 0 0 0 2px var(--mpia-bg);
+}
+
+/* Caja de chat – glassy */
+#mpia-chatbox{
+  width: 340px; max-height: 72vh; display:flex; flex-direction:column;
+  background: color-mix(in oklab, var(--mpia-bg) 85%, transparent);
+  border: 1px solid var(--mpia-border);
+  backdrop-filter: blur(10px);
+  border-radius: 16px; overflow: hidden; box-shadow: var(--mpia-shadow);
+  animation: mpia-pop .18s ease;
+}
+@keyframes mpia-pop{ from{ transform: scale(.98); opacity:0 } to{ transform: scale(1); opacity:1 } }
+
+.mpia-header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 12px; background: linear-gradient(180deg, color-mix(in oklab, var(--mpia-primary) 15%, var(--mpia-bg)), var(--mpia-bg));
+  border-bottom:1px solid var(--mpia-border);
+  color: var(--mpia-fg);
+}
+.mpia-title{ display:flex; gap:8px; align-items:center; }
+.mpia-avatar{ width:22px; height:22px; border-radius:999px; border:1px solid var(--mpia-border); }
+
+#mpia-messages{ padding:12px; overflow-y:auto; flex:1; color:var(--mpia-fg); }
+
+.mpia-bubble{
+  padding:10px 12px; margin:6px 0; border-radius:12px; max-width:85%; line-height:1.35;
+  position: relative; word-wrap: break-word;
+}
+.mpia-user{ background: var(--mpia-user); margin-left:auto; }
+.mpia-bot { background: var(--mpia-bot);  margin-right:auto; }
+
+.mpia-meta{
+  display:block; font-size:11px; color: var(--mpia-muted); margin-top:4px;
+}
+
+.mpia-typing{ opacity:.8; font-style:italic; }
+.mpia-dots span{ display:inline-block; width:5px; height:5px; border-radius:999px; background: var(--mpia-muted); margin:0 2px; animation: mpia-blink 1s infinite; }
+.mpia-dots span:nth-child(2){ animation-delay:.2s }
+.mpia-dots span:nth-child(3){ animation-delay:.4s }
+@keyframes mpia-blink{ 0%,80%,100%{ opacity:.2 } 40%{ opacity:1 } }
+
+.mpia-chips{ display:flex; gap:6px; padding:0 10px 8px 10px; flex-wrap: wrap; margin-top:4px; }
+.mpia-chip{
+  border:1px solid var(--mpia-border); background: transparent; color: var(--mpia-fg);
+  padding:6px 10px; border-radius:999px; cursor:pointer; font-size:12px;
+}
+.mpia-chip:hover{ border-color: var(--mpia-primary); }
+
+/* === INPUT CON BOTÓN INTERNO === */
+#mpia-form{
+  /* sin flex: el botón va posicionado dentro */
+  padding: 10px;
+  border-top: 1px solid var(--mpia-border);
+  background: var(--mpia-bg);
+}
+#mpia-form.mpia-input-wrap{
+  position: relative; /* referencia para #mpia-send absolute */
+  display: block;
+}
+
+#mpia-input{
+  width: 100%;
+  padding: 12px 60px 12px 12px; /* ← más espacio a la derecha */
+  border: 1px solid var(--mpia-border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--mpia-fg);
+  outline: none;
+  box-sizing: border-box; /* asegura que el padding se respeta dentro del ancho total */
+  overflow-x: hidden;     /* evita que el texto se desborde */
+  text-overflow: ellipsis;
+}
+#mpia-input::placeholder{ color: var(--mpia-muted); }
+
+#mpia-send{
+  position: absolute;
+  top: 50%;
+  right: 14px;            /* más pegado al borde */
+  transform: translateY(-50%);
+  width: 32px;            /* botón ligeramente más pequeño */
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 8px;
+  background: var(--mpia-primary);
+  color: #fff;
+  cursor: pointer;
+  transition: filter .15s ease, transform .06s ease;
+  padding: 0;
+  min-width: 0;
+  flex-shrink: 0;
+}
+#mpia-send:hover:not(:disabled){ filter: brightness(1.05); }
+#mpia-send:active:not(:disabled){ transform: translateY(-50%) scale(0.96); }
+#mpia-send:disabled{ filter: grayscale(1) brightness(.8); cursor: not-allowed; }
+#mpia-send svg{
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+/* Estado de carga del botón enviar */
+#mpia-send.is-loading svg { display: none; }
+#mpia-send.is-loading {
+  position: absolute; /* ya lo era */
+}
+#mpia-send.is-loading::after{
+  content:"";
+  width: 18px; height: 18px;
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,.6);
+  border-top-color: rgba(255,255,255,1);
+  display: block;
+  animation: mpia-spin .8s linear infinite;
+}
+@keyframes mpia-spin { to { transform: rotate(360deg); } }
+
+
+/* Responsive */
+@media (max-width: 420px){
+  #mpia-chatbox{ width: calc(100vw - 24px); right: 12px; left: 12px; }
+}
